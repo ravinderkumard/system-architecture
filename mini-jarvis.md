@@ -460,7 +460,7 @@ From a low-level design perspective, this is important because resilience is not
 
 ## 6. Core Components
 
-### 5.1 Smart Listener
+### 6.1 Smart Listener
 
 Smart Listener is the user-facing ingress service. Its job is not to solve domain problems, but to normalize requests into routing decisions.
 
@@ -481,7 +481,9 @@ Why this matters:
 - simple requests avoid unnecessary distributed execution cost
 - future features such as authentication, rate limiting, session metadata, or safety filters can be inserted at the ingress point
 
-### 5.2 Meta-Agent Service
+**Repository:** [[smart-listener](https://github.com/ravinderkumard/smart-listener)](https://github.com/ravinderkumard/smart_listener.git)
+
+### 6.2 Meta-Agent Service
 
 The Meta-Agent is the coordination brain of the system. It translates intent into execution.
 
@@ -499,7 +501,9 @@ Current responsibilities:
 
 This service is effectively the orchestrator and should be treated as the system’s control plane. In mature architectures, this layer becomes the most important place to enforce workflow correctness, policy, idempotency, and observability.
 
-### 5.3 Redis Communication Layer
+**Repository:** [https://github.com/ravinderkumard/meta_agent_service.git](https://github.com/ravinderkumard/meta_agent_service.git)
+
+### 6.3 Redis Communication Layer
 
 Redis is currently serving three different but complementary roles:
 
@@ -517,7 +521,7 @@ The design benefit is temporal decoupling:
 
 The tradeoff is that stream-based systems demand stronger message contracts, consumer-group discipline, replay strategy, and dead-letter handling as concurrency grows.
 
-### 5.4 Domain Agents
+### 6.4 Domain Agents
 
 The first implemented domain agent is the travel-planning agent. It is a useful proof point because it demonstrates that domain work is not just a prompt wrapper, but a composed agent workflow with tools, external context, and potentially long-running execution.
 
@@ -530,6 +534,8 @@ Current capabilities include:
 - both synchronous API execution and asynchronous worker execution
 
 This agent is built using LangGraph, which is a good fit for tool-using agent loops because it makes state transitions explicit and keeps the reasoning-plus-tools pattern more inspectable than an opaque chain.
+
+**Repository - Trip Planner:** [https://github.com/ravinderkumard/ai_trip_planner.git](https://github.com/ravinderkumard/ai_trip_planner.git)
 
 ## 7. End-to-End Workflow
 
@@ -564,7 +570,23 @@ The Meta-Agent listener waits for the matching `task_id`, interprets success or 
 
 This staged design is clean, understandable, and extensible. It demonstrates a genuine distributed systems mindset rather than a tightly coupled HTTP chain.
 
-## 8. Architectural Strengths
+## 8. Flutter Client Integration
+
+### Overview
+This section describes the integration of a Flutter client that uses wake word functionality to invoke the Smart Listener API.
+
+### Client Layer
+In the Client Layer of the system, the Flutter app is responsible for listening for wake words. Once a wake word is detected, the app sends a request to the Smart Listener API to process further commands or inquiries.
+
+### Wake Word Functionality
+1. **Detection**: The Flutter app utilizes a speech recognition package to listen for specific wake words.
+2. **Invocation**: Upon detection of the wake word, an API request is made to the Smart Listener Service, passing user queries for processing.
+3. **Response Handling**: The app receives a response from the Smart Listener API and processes it for user feedback on the mobile interface.
+
+This integration enhances the user experience by enabling hands-free interaction with the smart service, thus ensuring seamless communication.
+
+
+## 9. Architectural Strengths
 
 Several design decisions stand out as especially strong for an interview setting.
 
@@ -588,11 +610,11 @@ Attaching task IDs, retries, timestamps, and status metadata is an important ste
 
 Retry logic, timeout handling, and circuit breakers are already present. Even if still basic, these patterns show good production instincts.
 
-## 9. Principal-Level Design Critique
+## 10. Principal-Level Design Critique
 
 The current design is solid, but principal-level evaluation requires calling out where it will bend under growth.
 
-### 8.1 The Planner Contract Is Still Soft
+### 10.1 The Planner Contract Is Still Soft
 
 The planner is LLM-driven and the current schema validation is lightweight. That is acceptable for an MVP, but in a larger system it creates orchestration fragility.
 
@@ -608,7 +630,7 @@ Principal recommendation:
 - validate agent names and allowed actions against an agent registry
 - distinguish planner failure from worker failure
 
-### 8.2 Worker Discovery Is Implicit
+### 10.2 Worker Discovery Is Implicit
 
 Today, the orchestrator assumes workers exist and know how to consume tasks. That works in a demo system, but it does not scale operationally.
 
@@ -624,7 +646,7 @@ Principal recommendation:
 - track worker heartbeats and health status
 - route based on capability, version, and availability
 
-### 8.3 Sequential Orchestration Limits Throughput
+### 10.3 Sequential Orchestration Limits Throughput
 
 The system currently executes tasks sequentially. That keeps orchestration simple, but it also constrains latency and leaves performance on the table for independent subtasks.
 
@@ -636,7 +658,7 @@ Principal recommendation:
 
 This change would be especially important once multiple specialist agents are introduced.
 
-### 8.4 Listener Correlation Will Become a Concurrency Bottleneck
+### 10.4 Listener Correlation Will Become a Concurrency Bottleneck
 
 A single-stream listening approach with simple `task_id` matching is fine at low scale, but high concurrency will expose correlation and scanning inefficiencies.
 
@@ -646,7 +668,7 @@ Principal recommendation:
 - consider per-request correlation channels or indexed result lookup
 - add dead-letter queues and replay semantics
 
-### 8.5 Reliability State Is Not Yet Durable Enough
+### 10.5 Reliability State Is Not Yet Durable Enough
 
 The circuit breaker is in-memory and task metadata has short-lived persistence. This means resilience behavior resets across process restarts.
 
@@ -656,7 +678,7 @@ Principal recommendation:
 - separate transient execution state from durable audit state
 - define explicit recovery behavior after restart
 
-### 8.6 Observability Is Underpowered for Multi-Agent Production
+### 10.6 Observability Is Underpowered for Multi-Agent Production
 
 The current implementation tracks some task metadata, but a real multi-agent platform requires richer telemetry.
 
@@ -667,7 +689,7 @@ Principal recommendation:
 - introduce structured logs and metrics by agent, action, and outcome
 - define service-level objectives for latency and success rate
 
-## 10. Non-Functional Architecture
+## 11. Non-Functional Architecture
 
 Strong architecture documentation should go beyond component boxes and address operational characteristics.
 
@@ -727,7 +749,7 @@ This architecture is operable in development, but a production operator would as
 
 A principal-level design should answer these with dashboards, traceability, and explicit failure states.
 
-## 11. Recommended Evolution Path
+## 12. Recommended Evolution Path
 
 The strongest next steps are not random feature additions; they are platform-hardening moves.
 
@@ -753,7 +775,7 @@ The strongest next steps are not random feature additions; they are platform-har
 - define evaluation pipelines for planner quality, routing accuracy, and agent correctness
 - evolve from a single orchestration service into a more formal workflow runtime if complexity justifies it
 
-## 12. Interview-Ready Positioning
+## 13. Interview-Ready Positioning
 
 If presented in an interview, Mini Jarvis should be described as:
 
@@ -761,7 +783,40 @@ If presented in an interview, Mini Jarvis should be described as:
 
 That framing is stronger than simply saying "it uses FastAPI, Redis, and LangGraph." It shows architectural intent, not just implementation detail.
 
-## 13. Final Assessment
+## 14. Flutter Mobile Client: Challenges and Mitigation Strategies
+
+Integrating a Flutter mobile client with the Mini Jarvis backend presents several architectural challenges. Below are the major challenges along with mitigation strategies and integration patterns.
+
+### 1. Network Reliability
+* **Challenge:** Mobile applications often face intermittent network connections, leading to possible service outages.
+* **Mitigation Strategy:** Implement retry logic with exponential backoff strategies and cache API responses for offline access. Use network status indicators to inform users about connectivity issues.
+
+### 2. Battery/Resource Consumption
+* **Challenge:** Flutter applications can be resource-intensive, affecting the battery life of mobile devices.
+* **Mitigation Strategy:** Optimize resource-intensive tasks, such as heavy computations or background processes. Use efficient state management solutions to minimize re-renders and resource usage.
+
+### 3. Security
+* **Challenge:** Ensuring secure communication between the mobile client and backend is critical to prevent data breaches.
+* **Mitigation Strategy:** Use HTTPS for secure communication. Implement token-based authentication and ensure sensitive data is encrypted.
+
+### 4. Audio Processing
+* **Challenge:** Integrating sophisticated audio processing can be challenging due to Flutter's limitations in accessing native APIs.
+* **Mitigation Strategy:** Leverage platform channels to integrate native audio processing libraries. Analyze audio processing needs and selectively implement features to improve performance.
+
+### 5. Offline Capabilities
+* **Challenge:** Users may need to access the application without an internet connection, which requires offline capabilities.
+* **Mitigation Strategy:** Utilize local databases (like SQLite) or remote caching mechanisms to store crucial data. Provide a seamless experience by handling online-offline transitions gracefully.
+
+### 6. State Management
+* **Challenge:** Managing the state of the application efficiently is vital for a smooth user experience.
+* **Mitigation Strategy:** Implement state management solutions like Provider, Bloc, or Riverpod to handle state changes predictably and efficiently. Enable separation of business logic from the UI for better maintainability.
+
+### Integration Patterns
+- **API Gateway:** Use an API gateway to facilitate communication between the mobile client and backend services. This can help in handling rate limiting, caching, and security.  
+- **Microservices:** Consider using a microservices architecture to improve the scalability and maintainability of the application. Each service can focus on a single feature, reducing the complexity of integration.
+- **Data Layer Abstraction:** Abstract data access using repositories that can interface with local and remote data sources. This allows for cleaner code and easier testing.
+
+## 15. Final Assessment
 
 Mini Jarvis is not yet a fully mature agent platform, but it is architecturally well-composed. Its biggest strength is not the current number of agents; it is the fact that the system has already been decomposed along the right boundaries:
 
