@@ -536,6 +536,7 @@ Current capabilities include:
 This agent is built using LangGraph, which is a good fit for tool-using agent loops because it makes state transitions explicit and keeps the reasoning-plus-tools pattern more inspectable than an opaque chain.
 
 **Repository - Trip Planner:** [https://github.com/ravinderkumard/ai_trip_planner.git](https://github.com/ravinderkumard/ai_trip_planner.git)
+**Repository - Career Agent:** https://github.com/ravinderkumard/career_meta_agent_service.git
 
 ## 7. End-to-End Workflow
 
