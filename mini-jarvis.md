@@ -829,3 +829,175 @@ Mini Jarvis is not yet a fully mature agent platform, but it is architecturally 
 That is exactly the kind of foundation that can evolve into a serious AI platform.
 
 The next leap is not adding more prompts. It is hardening the orchestration model: stronger contracts, richer observability, explicit agent registration, and safe parallel execution. Once those are in place, Mini Jarvis moves from an interesting prototype to a credible production architecture.
+
+# Mini Jarvis Architecture
+
+## Table of Contents
+- [System Context](#system-context)
+- [High-Level Architecture](#high-level-architecture)
+- [Multi-Layer Agent Architecture Evolution](#multi-layer-agent-architecture-evolution)
+- [Global Meta Agent (Domain Router Layer)](#global-meta-agent-domain-router-layer)
+- [Career Meta Agent (Specialized Orchestration)](#career-meta-agent-specialized-orchestration)
+- [Component Responsibilities](#component-responsibilities)
+- [Architecture Diagrams](#architecture-diagrams)
+- [Design Philosophy](#design-philosophy)
+- [Appendix](#appendix)
+
+---
+
+## System Context
+
+Mini Jarvis originally operated as a single orchestration system. To support extensibility and domain-specific intelligence, the architecture now introduces a multi-layered agent system. This evolution enables:
+
+- Intent understanding decoupled from domain routing
+- Centralized domain routing via a Global Meta Agent
+- Specialized orchestration for complex domains (e.g., Career)
+- Clear separation between orchestration and execution
+- Asynchronous, scalable execution using Redis
+
+---
+
+## High-Level Architecture
+
+The evolved architecture consists of four primary layers:
+
+1. **Intent Layer**: Smart Listener for intent extraction
+2. **Domain Routing Layer**: Global Meta Agent for domain selection and routing
+3. **Orchestration Layer**: Meta-Agent (generic) and Career Meta Agent (specialized)
+4. **Execution Layer**: Workers and Execution Agents
+
+**Flow:**
+
+Client → Smart Listener → Global Meta Agent →
+→ Meta-Agent → Workers
+→ Career Meta Agent → Execution Agents
+
+---
+
+## Multi-Layer Agent Architecture Evolution
+
+The system has matured from a monolithic orchestrator to a modular, layered agent architecture:
+
+- **Intent Layer**: Focused solely on understanding user intent, free from routing or orchestration logic.
+- **Domain Routing Layer**: The Global Meta Agent (Domain Router) determines the appropriate domain(s) for each request, supporting both single and multi-domain aggregation.
+- **Orchestration Layer**: Contains both the generic Meta-Agent and specialized orchestrators like the Career Meta Agent. This enables domain-specific pipelines where needed.
+- **Execution Layer**: Dedicated to task execution, ensuring a clean separation from control logic.
+
+This structure enhances modularity, scalability, and the ability to introduce new domains or orchestration strategies without impacting the core system.
+
+---
+
+## Global Meta Agent (Domain Router Layer)
+
+**Purpose:**
+
+- Acts as the central domain router between the Smart Listener and all orchestrators.
+- Responsible for analyzing intent and routing requests to the appropriate domain orchestrator(s).
+- Supports both single-domain routing and multi-domain aggregation for complex queries.
+
+**Responsibilities:**
+- Receives normalized intent from Smart Listener
+- Selects one or more target domains
+- Forwards requests to the appropriate orchestrator (Meta-Agent or Career Meta Agent)
+- Aggregates responses if multiple domains are involved
+
+**Rationale:**
+- Decouples domain selection from orchestration logic
+- Enables flexible routing strategies and future extensibility
+
+---
+
+## Career Meta Agent (Specialized Orchestration)
+
+**Purpose:**
+
+- Provides domain-specific orchestration for the Career domain, which requires advanced coordination beyond generic task management.
+- Operates in parallel to the Meta-Agent, not as a worker or sub-agent.
+
+**Key Components:**
+- **StrategyAgent**: Defines high-level strategies for career-related tasks
+- **TaskTranslator**: Converts strategies into actionable tasks
+- **FeedbackAgent**: Monitors execution and provides adaptive feedback
+- **ProgressTracker**: Tracks progress and state across long-running workflows
+- **Redis Memory**: Persists state and enables async execution
+
+**Responsibilities:**
+- Receives routed requests from the Global Meta Agent
+- Orchestrates complex, multi-step career workflows
+- Coordinates with Execution Agents for task fulfillment
+- Maintains domain-specific state and feedback loops
+
+---
+
+## Component Responsibilities
+
+| Component            | Responsibility Summary                                                                 |
+|----------------------|--------------------------------------------------------------------------------------|
+| Smart Listener       | Intent understanding only; extracts and normalizes user intent                        |
+| Global Meta Agent    | Domain routing; selects and routes to appropriate orchestrator(s)                     |
+| Meta-Agent           | Generic task orchestration for standard domains                                       |
+| Career Meta Agent    | Specialized orchestration for Career domain; manages domain-specific pipelines        |
+| Workers/Executors    | Pure execution; perform tasks as directed by orchestrators                           |
+
+---
+
+## Architecture Diagrams
+
+### 1. Layered System Overview
+
+```
++---------+      +----------------+      +-------------------+      +-----------------+
+|  Client | ---> | Smart Listener | ---> | Global Meta Agent | ---> |   Orchestrators  |
++---------+      +----------------+      +-------------------+      +-----------------+
+                                                                |                   |
+                                                                v                   v
+                                                      +----------------+   +---------------------+
+                                                      |   Meta-Agent   |   | Career Meta Agent   |
+                                                      +----------------+   +---------------------+
+                                                                |                   |
+                                                                v                   v
+                                                      +----------------+   +---------------------+
+                                                      |   Workers      |   | Execution Agents    |
+                                                      +----------------+   +---------------------+
+```
+
+### 2. Career Meta Agent Pipeline
+
+```
++---------------------+
+| Career Meta Agent   |
++---------------------+
+        |
+        v
++--------------+    +---------------+    +--------------+    +----------------+
+|StrategyAgent |--->|TaskTranslator |--->|FeedbackAgent |--->|ProgressTracker |
++--------------+    +---------------+    +--------------+    +----------------+
+        |
+        v
++----------------+
+| Redis Memory   |
++----------------+
+        |
+        v
++----------------+
+| Execution      |
+| Agents         |
++----------------+
+```
+
+---
+
+## Design Philosophy
+
+- **Asynchronous Execution**: All orchestration layers leverage Redis for async task management and state persistence.
+- **Separation of Control vs Execution**: Orchestration and execution are strictly decoupled, ensuring clarity and scalability.
+- **Modular Agents**: Each agent/layer has a single, well-defined responsibility, enabling independent evolution.
+- **Extensibility**: New domains, orchestrators, or routing strategies can be added with minimal impact to existing components.
+
+---
+
+## Appendix
+
+- For legacy architecture and rationale, see [Mini Jarvis Architecture](./mini-jarvis.md)
+- For domain-specific orchestration details, see [Career Meta Agent Design](./career-meta-agent.md)
+- For routing strategies, see [Global Meta Agent Design](./global-meta-agent.md)
